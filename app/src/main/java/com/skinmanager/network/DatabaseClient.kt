@@ -6,53 +6,45 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object DatabaseClient {
+    // Replace this with the raw manifest.json URL from the Sjector database repository.
+    const val MANIFEST_URL = ""
 
-    /**
-     * Downloads and parses a Sjector manifest without blocking the main thread.
-     * Expected JSON: { "version": 1, "skins": [{ "heroName": "...", "skinName": "..." }] }
-     */
-    fun fetchSkins(manifestUrl: String, callback: (Result<List<Skin>>) -> Unit) {
-        Thread {
-            var connection: HttpURLConnection? = null
+    fun fetchSkins(): List<Skin> {
+        require(MANIFEST_URL.isNotBlank()) {
+            "Database URL is not configured yet."
+        }
 
-            try {
-                require(manifestUrl.isNotBlank()) { "Database URL has not been configured yet." }
+        val connection = (URL(MANIFEST_URL).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 10000
+            readTimeout = 10000
+            setRequestProperty("Accept", "application/json")
+        }
 
-                connection = (URL(manifestUrl).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    connectTimeout = 10000
-                    readTimeout = 10000
-                    setRequestProperty("Accept", "application/json")
-                    setRequestProperty("User-Agent", "Sjector-Android")
-                }
+        try {
+            val responseCode = connection.responseCode
+            if (responseCode !in 200..299) {
+                throw IllegalStateException("Database request failed (HTTP $responseCode).")
+            }
 
-                val responseCode = connection.responseCode
-                if (responseCode !in 200..299) {
-                    throw IllegalStateException("Database request failed (HTTP $responseCode).")
-                }
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            val manifest = JSONObject(body)
+            val skinsJson = manifest.optJSONArray("skins")
+                ?: throw IllegalStateException("Invalid database manifest: missing skins array.")
 
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val root = JSONObject(response)
-                val skinArray = root.optJSONArray("skins")
-                    ?: throw IllegalArgumentException("Manifest is missing the 'skins' array.")
-
-                val skins = mutableListOf<Skin>()
-                for (index in 0 until skinArray.length()) {
-                    val item = skinArray.optJSONObject(index) ?: continue
+            return buildList {
+                for (index in 0 until skinsJson.length()) {
+                    val item = skinsJson.optJSONObject(index) ?: continue
                     val heroName = item.optString("heroName").trim()
                     val skinName = item.optString("skinName").trim()
 
                     if (heroName.isNotEmpty() && skinName.isNotEmpty()) {
-                        skins.add(Skin(heroName, skinName))
+                        add(Skin(heroName, skinName))
                     }
                 }
-
-                callback(Result.success(skins))
-            } catch (error: Exception) {
-                callback(Result.failure(error))
-            } finally {
-                connection?.disconnect()
             }
-        }.start()
+        } finally {
+            connection.disconnect()
+        }
     }
 }
