@@ -8,7 +8,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.skinmanager.R
 import com.skinmanager.models.Skin
 
-class SkinAdapter(private val skins: List<Skin>) : RecyclerView.Adapter<SkinAdapter.SkinViewHolder>() {
+class SkinAdapter : RecyclerView.Adapter<SkinAdapter.SkinViewHolder>() {
+    private val skins = mutableListOf<Skin>()
+
     class SkinViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val heroName: TextView = view.findViewById(R.id.hero_name)
         val skinName: TextView = view.findViewById(R.id.skin_name)
@@ -26,4 +28,10 @@ class SkinAdapter(private val skins: List<Skin>) : RecyclerView.Adapter<SkinAdap
     }
 
     override fun getItemCount(): Int = skins.size
+
+    fun submitSkins(newSkins: List<Skin>) {
+        skins.clear()
+        skins.addAll(newSkins)
+        notifyDataSetChanged()
+    }
 }
