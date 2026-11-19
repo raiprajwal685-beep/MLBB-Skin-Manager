@@ -7,7 +7,7 @@ import java.net.URL
 
 object DatabaseClient {
     // Replace this with the raw manifest.json URL from the Sjector database repository.
-    const val MANIFEST_URL = ""
+    const val MANIFEST_URL = "https://raw.githubusercontent.com/raiprajwal685-beep/MLBB-Skin-Database/main/manifest.json"
 
     fun fetchSkins(): List<Skin> {
         require(MANIFEST_URL.isNotBlank()) {
